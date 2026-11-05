@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FREEAIM — Aim Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Filtros de daltonismo (gerados pelo script.js) -->
+<svg id="cb-svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="cb-defs"></defs></svg>
+
+<div id="desktop-only" class="desktop-only">
+  <h1 class="logo">FREE<span>AIM</span></h1>
+  <p>O FREEAIM funciona apenas em computador.<br>Abra em um PC com mouse e tela maior.</p>
+</div>
+
+<div id="toasts" class="toasts"></div>
+
+<!-- ===== LOGIN ===== -->
+<div id="auth-screen" class="auth">
+  <div class="auth-card">
+    <h1 class="logo">FREE<span>AIM</span></h1>
+    <p class="sub">Treine sua mira no navegador</p>
+    <div class="tabs">
+      <button id="tab-login" class="tab active" type="button">Entrar</button>
+      <button id="tab-register" class="tab" type="button">Criar conta</button>
+    </div>
+    <form id="auth-form" autocomplete="off">
+      <label>Nome de jogador
+        <input id="auth-user" type="text" maxlength="16" placeholder="ex: player123" spellcheck="false">
+      </label>
+      <label>Senha
+        <input id="auth-pass" type="password" placeholder="mín. 8 caracteres, letras e números">
+      </label>
+      <p id="auth-msg" class="msg"></p>
+      <button id="auth-submit" class="btn primary" type="submit">Entrar</button>
+    </form>
+    <p class="note">Tudo fica salvo só neste navegador.</p>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="logo small">FREE<span>AIM</span></div>
+    <nav id="nav" class="nav">
+      <button class="nav-btn active" data-view="play" type="button">Jogar</button>
+      <button class="nav-btn" data-view="shop" type="button">Loja</button>
+      <button class="nav-btn" data-view="profile" type="button">Perfil</button>
+      <button class="nav-btn" data-view="crosshair" type="button">Retícula</button>
+      <button class="nav-btn" data-view="sens" type="button">Sensibilidade</button>
+      <button class="nav-btn" data-view="settings" type="button">Configurações</button>
+    </nav>
+    <div class="top-right">
+      <div class="coins" title="Suas moedas"><span class="coin-ico">●</span><span id="top-coins" class="baloo-coins">0</span></div>
+      <div id="lvl-chip" class="lvl" title="XP">
+        <span id="top-level" class="orb">Nv 1</span>
+        <div class="xpbar"><i id="top-xp-fill"></i></div>
+      </div>
+      <button id="btn-profile-chip" class="chip" type="button"><span id="top-icon"></span><span id="top-name"></span></button>
+      <button id="btn-logout" class="btn ghost small" type="button">Sair</button>
+    </div>
+  </header>
+
+  <div class="shell" id="shell">
+    <main id="main" class="main">
+
+      <!-- JOGAR -->
+      <section id="view-play" class="view active">
+        <div class="play-top">
+          <div class="panel grow">
+            <h3>Modo</h3>
+            <div id="mode-list" class="mode-list"></div>
+          </div>
+          <div class="panel side">
+            <h3>Duração</h3>
+            <div id="dur-list" class="chips"></div>
+            <h3 class="mt">Top 3 <span id="mini-rank-label" class="muted"></span></h3>
+            <ol id="mini-rank" class="mini-rank"></ol>
+          </div>
+        </div>
+
+        <div id="arena-wrap" class="arena-wrap" data-bg="grid">
+          <canvas id="game-canvas"></canvas>
+          <div id="hud" class="hud">
+            <div class="pill"><span class="lbl">Tempo</span><span id="hud-time" class="orb">0.0</span></div>
+            <div class="pill"><span class="lbl">Pontos</span><span id="hud-score" class="baloo-points">0</span></div>
+            <div class="pill"><span class="lbl">Combo</span><span id="hud-combo" class="orb">x0</span></div>
+            <div class="pill"><span class="lbl">Moedas</span><span id="hud-coins" class="baloo-coins">0</span></div>
+            <div id="hud-lives-pill" class="pill hidden"><span class="lbl">Vidas</span><span id="hud-lives" class="orb lives"></span></div>
+          </div>
+          <div id="countdown" class="countdown hidden">
+            <span id="cd-label" class="cd-label">O jogo começa em</span>
+            <span id="cd-num" class="cd-num"></span>
+          </div>
+          <div id="arena-overlay" class="arena-overlay">
+            <div id="result-panel" class="result hidden">
+              <h2 id="res-title">Sessão concluída</h2>
+              <div class="res-grid">
+                <div><span class="lbl">Pontos</span><span id="res-score" class="baloo-points big">0</span></div>
+                <div><span class="lbl">Precisão</span><span id="res-acc" class="orb">0%</span></div>
+                <div><span class="lbl">Alvos</span><span id="res-hits" class="orb">0</span></div>
+                <div><span class="lbl">Combo máx.</span><span id="res-combo" class="orb">0</span></div>
+                <div><span class="lbl">Moedas</span><span id="res-coins" class="baloo-coins big">0</span></div>
+                <div><span class="lbl">XP</span><span id="res-xp" class="orb xp">+0</span></div>
+              </div>
+              <div id="res-badges" class="badges"></div>
+            </div>
+            <p id="overlay-msg" class="overlay-msg"></p>
+            <button id="btn-start" class="btn primary big" type="button">Iniciar</button>
+            <button id="btn-close-focus" class="btn ghost small hidden" type="button">Voltar ao menu</button>
+            <p id="overlay-hint" class="hint">Clique para começar. Esc cancela a sessão.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOJA -->
+      <section id="view-shop" class="view">
+        <div class="shop-head">
+          <h2>Loja</h2>
+          <div class="shop-actions">
+            <span id="daily-msg" class="muted"></span>
+            <button id="btn-daily" class="btn" type="button">Bônus diário</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Itens especiais</h3>
+          <div id="special-items"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Caixa de skins</h3>
+          <div class="box-row">
+            <div class="box-info">
+              <div class="box-cost"><span id="box-cost" class="baloo-coins big">750</span></div>
+              <button id="btn-open-box" class="btn primary" type="button">Abrir caixa</button>
+              <p class="muted small">Skin repetida devolve moedas por raridade.</p>
+            </div>
+            <div id="box-odds" class="odds"></div>
+          </div>
+          <div id="box-result" class="box-result"></div>
+          <details class="mt"><summary>Histórico de caixas</summary><ul id="box-history" class="plain-list"></ul></details>
+        </div>
+
+        <div class="panel">
+          <h3>Formatos de alvo <span class="muted small">500 moedas cada, em ordem</span></h3>
+          <div id="format-grid" class="grid-cards"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Skins <span id="skin-count" class="muted"></span></h3>
+          <div id="skin-filter" class="chips"></div>
+          <div id="skin-grid" class="grid-cards skins"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de moedas</h3>
+          <table class="tbl"><tbody id="coin-log"></tbody></table>
+        </div>
+      </section>
+
+      <!-- PERFIL -->
+      <section id="view-profile" class="view">
+        <div class="panel profile-head">
+          <div id="prof-icon" class="prof-icon"></div>
+          <div>
+            <h2 id="prof-name"></h2>
+            <p id="prof-title" class="muted"></p>
+            <div class="lvl-row">
+              <span id="prof-level" class="orb"></span>
+              <div class="xpbar wide"><i id="prof-xp-fill"></i></div>
+              <span id="prof-xp" class="muted small"></span>
+            </div>
+          </div>
+          <label class="inline">Título
+            <select id="title-select"></select>
+          </label>
+        </div>
+
+        <div class="panel">
+          <h3>Ícone</h3>
+          <div id="prof-icons" class="icon-grid"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Estatísticas</h3>
+          <div id="stats-grid" class="stats-grid"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Ranking local <span class="muted small">top 5 neste navegador</span></h3>
+          <div class="row">
+            <select id="rk-mode"></select>
+            <select id="rk-dur"></select>
+          </div>
+          <table class="tbl"><tbody id="rk-body"></tbody></table>
+        </div>
+
+        <div class="panel">
+          <h3>Últimas 20 sessões</h3>
+          <table class="tbl">
+            <thead><tr><th>Quando</th><th>Modo</th><th>Dur.</th><th>Pontos</th><th>Precisão</th><th>Alvos</th><th>Combo</th></tr></thead>
+            <tbody id="hist-body"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h3>Conquistas</h3>
+          <div id="ach-list" class="ach-list"></div>
+        </div>
+      </section>
+
+      <!-- RETÍCULA -->
+      <section id="view-crosshair" class="view">
+        <div class="xh-page">
+          <div class="xh-left">
+            <div class="panel">
+              <div class="xh-head">
+                <h3>Pré-visualização</h3>
+                <div id="xh-bgs" class="chips"></div>
+              </div>
+              <canvas id="xh-preview" width="640" height="360" data-bg="grid"></canvas>
+              <p class="muted small mt">Mova o mouse sobre a área e clique para ver o pulso. Tudo é salvo na hora.</p>
+            </div>
+            <div class="panel">
+              <h3>Presets</h3>
+              <div id="xh-presets" class="preset-grid"></div>
+              <h3 class="mt">Código compartilhável (FA2)</h3>
+              <div class="row">
+                <input id="xh-code" type="text" spellcheck="false">
+                <button id="btn-xh-copy" class="btn" type="button">Copiar</button>
+                <button id="btn-xh-import" class="btn" type="button">Importar</button>
+              </div>
+              <p class="muted small mt">Cole o código de um amigo e clique em Importar.</p>
+            </div>
+          </div>
+
+          <div class="xh-right">
+            <div class="panel">
+              <h3>Formato</h3>
+              <div id="xh-shapes" class="shape-tiles"></div>
+            </div>
+            <div class="panel">
+              <h3>Cor</h3>
+              <div id="xh-swatches" class="swatches"></div>
+              <label>Cor personalizada <input class="xh-ctl" data-key="color" type="color"></label>
+            </div>
+            <div class="panel">
+              <h3>Medidas</h3>
+              <label>Tamanho <output data-out="size"></output><input class="xh-ctl" data-key="size" type="range" min="2" max="40"></label>
+              <label>Espessura <output data-out="thick"></output><input class="xh-ctl" data-key="thick" type="range" min="1" max="8"></label>
+              <label>Espaço central <output data-out="gap"></output><input class="xh-ctl" data-key="gap" type="range" min="0" max="20"></label>
+              <label>Opacidade <output data-out="opacity"></output><input class="xh-ctl" data-key="opacity" type="range" min="10" max="100"></label>
+              <label>Tamanho do ponto <output data-out="dotSize"></output><input class="xh-ctl" data-key="dotSize" type="range" min="1" max="8"></label>
+            </div>
+            <div class="panel">
+              <h3>Detalhes</h3>
+              <label class="switch"><input class="xh-ctl" data-key="outline" type="checkbox"><span class="sw"></span> Contorno preto</label>
+              <label class="switch"><input class="xh-ctl" data-key="dot" type="checkbox"><span class="sw"></span> Ponto central</label>
+              <label class="switch"><input class="xh-ctl" data-key="pulse" type="checkbox"><span class="sw"></span> Pulso ao acertar</label>
+              <button id="btn-xh-reset" class="btn ghost small" type="button">Resetar retícula</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SENSIBILIDADE -->
+      <section id="view-sens" class="view">
+        <div class="panel">
+          <h3>Sensibilidade</h3>
+          <div class="sens-layout">
+            <div class="sens-controls">
+              <label>DPI do mouse <input id="sens-dpi" type="number" min="100" max="32000" step="50"></label>
+              <label>cm por 360° <input id="sens-cm" type="number" min="2" max="200" step="0.5"></label>
+              <label class="check"><input id="sens-lock" type="checkbox"> Usar Pointer Lock (recomendado)</label>
+              <p id="sens-info" class="muted"></p>
+              <p class="muted small">A conversão é aproximada: depende da sensibilidade do sistema e do navegador. Sem Pointer Lock, a mira segue o cursor e DPI/cm não se aplicam.</p>
+              <button id="btn-sens-reset" class="btn ghost small" type="button">Zerar contadores</button>
+            </div>
+            <div class="sens-pad-wrap">
+              <div id="sens-pad" class="sens-pad">
+                <canvas id="sens-canvas" width="520" height="280"></canvas>
+                <p class="hint">Clique aqui e mova o mouse. Esc libera.</p>
+              </div>
+              <div class="sens-readout">
+                <div><span class="lbl">Contagem bruta</span><span id="sens-raw" class="orb">0</span></div>
+                <div><span class="lbl">Distância (pelo DPI)</span><span id="sens-cmout" class="orb">0 cm</span></div>
+                <div><span class="lbl">Giro na mira</span><span id="sens-deg" class="orb">0°</span></div>
+              </div>
+              <p class="muted small">Teste de velocidade: com o mouse travado, mova uma distância conhecida (ex.: 10 cm com régua) e compare com a distância medida.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIGURAÇÕES -->
+      <section id="view-settings" class="view">
+        <div class="settings-grid">
+          <div class="panel">
+            <h3>Jogo</h3>
+            <label>Velocidade dos alvos <output id="set-speed-out"></output>
+              <input id="set-speed" type="range" min="1" max="10">
+            </label>
+            <div class="range-hint"><span>Lento</span><span>Rápido</span></div>
+            <p class="muted small">Vale para Alvos móveis e Tracking.</p>
+            <h4>Fundo da arena</h4>
+            <div id="set-bg-tiles" class="bg-tiles"></div>
+          </div>
+
+          <div class="panel">
+            <h3>Som</h3>
+            <label class="switch"><input id="set-sound" type="checkbox"><span class="sw"></span> Sons ligados</label>
+            <h4>Timbre do acerto</h4>
+            <div id="set-timbre-chips" class="chips"></div>
+            <label class="mt">Volume <output id="set-volume-out"></output>
+              <input id="set-volume" type="range" min="0" max="100">
+            </label>
+            <button id="btn-test-sound" class="btn small" type="button">Testar som</button>
+          </div>
+
+          <div class="panel">
+            <h3>Aparência</h3>
+            <h4>Tema do aplicativo</h4>
+            <div id="set-theme-seg" class="seg"></div>
+            <h4>Modo daltonismo</h4>
+            <div id="set-cb-chips" class="chips"></div>
+            <p class="muted small mt">Os filtros de daltonismo são ajustes aproximados de cor.</p>
+          </div>
+
+          <div class="panel">
+            <h3>Geral</h3>
+            <p class="muted">Volta só as configurações desta tela. Moedas, skins, XP e ranking não mudam.</p>
+            <button id="btn-set-reset" class="btn ghost" type="button">Restaurar padrões</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Carrossel de dicas (canto inferior esquerdo) -->
+  <aside id="tips" class="tips" aria-label="Dicas">
+    <button id="tip-prev" class="tip-nav" type="button" aria-label="Dica anterior">‹</button>
+    <div class="tip-body">
+      <span class="tip-label">Dica</span>
+      <p id="tip-text" class="tip-text"></p>
+      <div id="tip-dots" class="tip-dots"></div>
+    </div>
+    <button id="tip-next" class="tip-nav" type="button" aria-label="Próxima dica">›</button>
+  </aside>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
