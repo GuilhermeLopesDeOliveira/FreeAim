@@ -330,6 +330,7 @@ function loadDB() {
   try { r = JSON.parse(localStorage.getItem(KEY)); } catch (e) { r = null; }
   if (!r || !isObj(r.users)) r = {users:{}};
   if (!isObj(r.ranking)) r.ranking = {};
+  if (!Array.isArray(r.rankLog)) r.rankLog = [];   // registro de TODAS as partidas competitivas
   if (!isObj(r.ui)) r.ui = {};
   deepFill(r.ui, {theme:'dark', colorblind:'none', lang:'pt'});
   if (typeof r.session !== 'string') r.session = null;
@@ -1052,11 +1053,12 @@ $('btn-start').addEventListener('click', startSession);
 
 function rankKey(m, d) { return m + '|' + d; }
 function submitRank(mode, dur, score, acc) {
-  if (user.admin) return 0;   // a conta admin não entra no ranking
   const k = rankKey(mode, dur), list = db.ranking[k] || (db.ranking[k] = []), low = user.name.toLowerCase();
   const ex = list.find(e => e.user.toLowerCase() === low);
   if (ex) { if (score > ex.score) { ex.score = score; ex.acc = acc; ex.ts = Date.now(); } }
-  else if (score > 0) list.push({user: user.name, score, acc, ts: Date.now()});
+  else list.push({user: user.name, score, acc, ts: Date.now()});
+  db.rankLog.unshift({user: user.name, mode, score, acc, ts: Date.now()});   // toda partida competitiva fica registrada
+  if (db.rankLog.length > 200) db.rankLog.length = 200;
   list.sort((a, b) => b.score - a.score);
   db.ranking[k] = list.slice(0, 10);
   return db.ranking[k].findIndex(e => e.user.toLowerCase() === low) + 1;
@@ -1097,7 +1099,7 @@ function endSession(early) {
   st.bestScore = Math.max(st.bestScore, score); st.bestCombo = Math.max(st.bestCombo, G.maxCombo);
   if (shots >= 10 || tracking) st.bestAcc = Math.max(st.bestAcc, acc);
   st.modes[mode] = (st.modes[mode] || 0) + 1;
-  user.history.unshift({ts: Date.now(), mode, dur, score, acc, hits: G.hits, combo: G.maxCombo, coins, xp});
+  user.history.unshift({ts: Date.now(), mode, dur, score, acc, hits: G.hits, combo: G.maxCombo, coins, xp, comp: comp && !custom});
   if (user.history.length > 20) user.history.length = 20;
   const pos = comp && !custom ? submitRank(mode, COMP_DUR, score, acc) : 0;   // só o Modo Competitivo entra no ranking
   if (coins > 0) addCoins(coins, `Sessão: ${MODE_BY_ID[mode].name} ${fmtDur(dur)}`);
@@ -1106,7 +1108,7 @@ function endSession(early) {
   if (lv1 > lv0) { badges.push(['Nível ' + lv1 + '!', 'green']); toast('Você subiu para o nível ' + lv1 + '!', 'gold'); }
   if (newRecord) badges.push(['Novo recorde pessoal!', '']);
   if (comp) badges.push(['Modo Competitivo', 'green']);
-  if (pos) badges.push([`Ranking competitivo #${pos}`, '']);
+  if (comp && !custom) badges.push([pos ? `Ranking competitivo #${pos}` : 'Partida registrada (fora do top 10)', '']);
   if (G.infinite) badges.push(['Você durou ' + fmtClock(elapsed), 'green']);
   let secret = false;
   const avgReact = G.reactN ? Math.round(G.reactSum / G.reactN) : 0;
@@ -1466,7 +1468,7 @@ function renderProfile() {
     ['Alvos destruídos', fmtNum(s.targets)], ['Tempo jogado', `${mins}min ${secs}s`], ['Modo favorito', fav ? MODE_BY_ID[fav[0]].name : '—'], ['Moedas ganhas', fmtNum(user.coinsEarned)]];
   $('stats-grid').innerHTML = items.map(([l, v]) => `<div class="stat"><span class="lbl">${l}</span><span class="orb">${v}</span></div>`).join('');
   renderRanking();
-  $('hist-body').innerHTML = user.history.map(h => `<tr><td class="muted">${fmtDate(h.ts)}</td><td>${MODE_BY_ID[h.mode] ? MODE_BY_ID[h.mode].name : h.mode}</td><td>${fmtDur(h.dur)}</td><td>${fmtNum(h.score)}</td><td>${h.acc.toFixed(1).replace('.', ',')}%</td><td>${h.hits}</td><td>${h.combo}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Nenhuma sessão ainda.</td></tr>';
+  $('hist-body').innerHTML = user.history.map(h => `<tr><td class="muted">${fmtDate(h.ts)}</td><td>${h.comp ? '🏆 ' : ''}${MODE_BY_ID[h.mode] ? MODE_BY_ID[h.mode].name : h.mode}</td><td>${fmtDur(h.dur)}</td><td>${fmtNum(h.score)}</td><td>${h.acc.toFixed(1).replace('.', ',')}%</td><td>${h.hits}</td><td>${h.combo}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Nenhuma sessão ainda.</td></tr>';
   $('ach-list').innerHTML = ACH.map(a => {
     const on = user.unlocked.includes(a.id), hide = a.secret && !on;
     return `<div class="ach ${on ? '' : 'off'}"><div><b>${hide ? '???' : esc(a.name)}</b><span>${hide ? 'Conquista secreta.' : esc(a.desc)}${on ? ' Título: ' + esc(a.title) : ''}</span></div></div>`;
@@ -1481,6 +1483,8 @@ function renderRanking() {
   }
   const list = db.ranking[rankKey(m.value, d.value)] || [];
   $('rk-body').innerHTML = list.map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.user)}</td><td class="baloo-points">${fmtNum(e.score)}</td><td class="muted">${e.acc.toFixed(1).replace('.', ',')}%</td><td class="muted">${fmtDate(e.ts)}</td></tr>`).join('') || '<tr><td class="muted">Sem registros para este modo e duração.</td></tr>';
+  const log = db.rankLog.filter(e => e.mode === m.value).slice(0, 10);
+  $('rk-log').innerHTML = log.map(e => `<tr><td class="muted">${fmtDate(e.ts)}</td><td>${esc(e.user)}</td><td class="baloo-points">${fmtNum(e.score)}</td><td class="muted">${e.acc.toFixed(1).replace('.', ',')}%</td></tr>`).join('') || '<tr><td class="muted">Nenhuma partida competitiva neste modo.</td></tr>';
 }
 $('rk-mode').addEventListener('change', renderRanking);
 $('rk-dur').addEventListener('change', renderRanking);

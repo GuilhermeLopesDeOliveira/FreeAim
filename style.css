@@ -393,3 +393,22 @@ h4{margin:16px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.1em
 
 .hud-keys{margin-left:auto;display:flex;gap:14px;font-size:12px;color:var(--muted,#8a93a8);white-space:nowrap}
 .hud-keys kbd{font-family:'Orbitron',sans-serif;font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;margin-right:4px}
+
+/* arena pequena (quadrada, 50%): o overlay e os botões se adaptam à largura da arena */
+.arena-wrap{container-type:inline-size}
+.arena-overlay{padding:6px;box-sizing:border-box;overflow:hidden;gap:clamp(4px,1.6cqw,14px)}
+.arena-overlay .overlay-btns{gap:clamp(6px,1.6cqw,12px);max-width:100%}
+.arena-overlay .btn.big{font-size:clamp(11px,4.4cqw,20px);padding:clamp(6px,1.9cqw,16px) clamp(12px,5cqw,44px);letter-spacing:.04em;max-width:100%}
+.arena-overlay .hint{font-size:clamp(9px,2.6cqw,12px);padding:3px 8px;max-width:92%;text-align:center}
+.arena-overlay .overlay-msg{font-size:clamp(10px,3cqw,16px);max-width:94%;text-align:center;padding:2px 10px}
+.arena-overlay .result{padding:clamp(8px,2.6cqw,20px) clamp(10px,4cqw,28px);max-width:96%;box-sizing:border-box}
+.arena-overlay .res-grid{gap:clamp(8px,3cqw,30px);flex-wrap:wrap}
+.arena-overlay .result h2{font-size:clamp(12px,3.6cqw,18px);margin-bottom:clamp(6px,1.6cqw,14px)}
+.arena-overlay .res-grid .orb,.arena-overlay .res-grid .big{font-size:clamp(14px,3.6cqw,22px)}
+.rk-sub{margin:16px 0 6px;font-size:14px}
+/* resultado em arena pequena: tudo encolhe e, se ainda não couber, a área rola (nunca corta o topo) */
+.arena-overlay{overflow-x:hidden;overflow-y:auto;justify-content:safe center;scrollbar-width:thin}
+.arena-overlay .badges{gap:clamp(3px,1cqw,8px);margin-top:clamp(4px,1.6cqw,14px)}
+.arena-overlay .badge{font-size:clamp(9px,2.5cqw,12px);padding:clamp(2px,.7cqw,4px) clamp(6px,2cqw,10px)}
+.arena-overlay .res-grid .lab,.arena-overlay .res-grid small,.arena-overlay .res-grid span{font-size:clamp(8px,2.2cqw,11px)}
+@container (max-width:340px){.arena-overlay .overlay-btns{flex-direction:column;align-items:center}}
