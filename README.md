@@ -17,7 +17,7 @@ Sem instalar nada, sem framework, sem banco de dados.
 
 ---
 
-## 📖 Sobre o projeto
+## 📖 Sobre o projeto 
 
 O **FREEAIM** é um jogo de treino de mira (*aim trainer*) criado para a disciplina de **Desenvolvimento de Jogos**. Você escolhe um modo, destrói os alvos o mais rápido que conseguir e ganha **pontos, moedas e XP**. Com as moedas dá para abrir caixas de skins, comprar passes e desbloquear conquistas.
 
