@@ -70,16 +70,22 @@ function toast(msg, kind) {
 /* ===================== dados do jogo ===================== */
 const REF360 = 5760;          // pixels virtuais em um giro de 360°
 const BOX_COST = 750;         // caixa (era 1000)
-const DAILY = 200;
+const DAILY = 1000;           // bônus diário (era 200)
+const COIN_TARGET = 50;       // moedas por alvo destruído (era 2)
+const TRACK_COIN_MS = 2000;   // Tracking: 1 "alvo" a cada 2 s com a mira no alvo (era 5 s)
 const FORMAT_PRICE = 500;
 
 const MODES = [
-  {id:'fixed',    name:'Alvos fixos',   desc:'Um alvo por vez. Acerte rápido.'},
-  {id:'moving',   name:'Alvos móveis',  desc:'O alvo se move e quica nas bordas.'},
-  {id:'grid',     name:'Gridshot',      desc:'3 alvos ao mesmo tempo.'},
-  {id:'tracking', name:'Tracking',      desc:'Mantenha a mira no alvo. +3 pts/s, sem perdas.'},
-  {id:'flick',    name:'Flickshot',     desc:'O alvo some em 800 ms.'},
-  {id:'survival', name:'Sobrevivência', desc:'3 vidas. O alvo encolhe e fica mais difícil a cada 5 acertos.'}
+  {id:'fixed',     name:'Alvos fixos',   desc:'Um alvo por vez. Acerte rápido.',help:'Um alvo aparece por vez. Acerte, e outro surge em outro lugar. Acerto +15, erro −10.'},
+  {id:'moving',    name:'Alvos móveis',  desc:'O alvo se move e quica nas bordas.',help:'O alvo se move pela arena e quica nas bordas. Acompanhe e clique nele. A velocidade fica em Configurações.'},
+  {id:'grid',      name:'Gridshot',      desc:'5 alvos ao mesmo tempo.',help:'Cinco alvos na tela ao mesmo tempo. Cada acerto repõe o alvo. Treina troca rápida de alvo.'},
+  {id:'tracking',  name:'Tracking',      desc:'Segure o botão do tiro sobre o alvo. +3 pts/s, sem perdas.',help:'Mantenha a mira sobre um alvo em movimento COM o botão do tiro pressionado. Ganha 3 pontos por segundo e nunca perde pontos.'},
+  {id:'flick',     name:'Flickshot',     desc:'O alvo some em 800 ms.',help:'O alvo some em 800 ms. Se sumir sem ser acertado, conta como erro. Treina o primeiro clique rápido.'},
+  {id:'survival',  name:'Sobrevivência', desc:'3 vidas. O alvo encolhe e fica mais difícil a cada 5 acertos.',help:'Você tem 3 vidas. O alvo encolhe até sumir; se sumir, perde uma vida. A cada 5 acertos ele fica menor e mais rápido.'},
+  {id:'precision', name:'Precisão',      desc:'Alvos bem pequenos e parados. Cada tiro conta.',help:'Alvos bem pequenos e parados. Cada tiro conta, então mire com calma.'},
+  {id:'reflex',    name:'Reflexo',       desc:'O alvo aparece de surpresa. Reagiu rápido? +5 pontos.',help:'O alvo some e reaparece de surpresa. Clicar antes de ele aparecer é erro. Reagir em menos de 0,5 s vale +5 pontos.'},
+  {id:'rain',      name:'Chuva',         desc:'Os alvos caem. Se um chegar ao chão, conta como erro.',help:'Os alvos caem de cima, até 5 ao mesmo tempo e cada vez mais rápido. Alvo que chega ao chão conta como erro, sem tirar pontos.'},
+  {id:'decoy',     name:'Foco',          desc:'Acerte só o alvo certo. Os falsos (com X) tiram pontos.',help:'Aparecem 3 alvos: 1 certo e 2 falsos marcados com X. Acertar um falso é erro e tira 10 pontos.'}
 ];
 const MODE_BY_ID = Object.fromEntries(MODES.map(m => [m.id, m]));
 const DURS = [15, 30, 60, 120, 300];
@@ -148,7 +154,14 @@ const TIMBRES = [
   {id:'seco', name:'Seco'}, {id:'metalico', name:'Metálico'}, {id:'digital', name:'Digital'},
   {id:'impacto', name:'Impacto'}, {id:'plasma', name:'Plasma'}, {id:'cristal', name:'Cristal'}, {id:'eletrico', name:'Elétrico'}
 ];
-const ICONS = [{id:'target', ch:'🎯'}, {id:'bolt', ch:'⚡'}, {id:'fire', ch:'🔥'}, {id:'alien', ch:'👾'}, {id:'brain', ch:'🧠'}];
+const ICONS = [
+  {id:'target', ch:'🎯'}, {id:'bolt', ch:'⚡'}, {id:'fire', ch:'🔥'}, {id:'alien', ch:'👾'}, {id:'brain', ch:'🧠'},
+  {id:'pad', ch:'🎮'}, {id:'rocket', ch:'🚀'}, {id:'fox', ch:'🦊'}, {id:'wolf', ch:'🐺'}, {id:'dragon', ch:'🐉'},
+  // os de baixo são desbloqueados por conquistas (campo "ach")
+  {id:'ninja', ch:'🥷', ach:'acc90'}, {id:'crown', ch:'👑', ach:'rich'}, {id:'gem', ch:'💎', ach:'skins10'}, {id:'robot', ch:'🤖', ach:'allmodes'},
+  {id:'ghost', ch:'👻', ach:'immortal'}, {id:'boom', ch:'💥', ach:'combo20'}, {id:'eagle', ch:'🦅', ach:'score1000'}, {id:'trophy', ch:'🏆', ach:'sess50'},
+  {id:'star', ch:'🌟', ach:'lvl5'}, {id:'medal', ch:'🏅', ach:'hits1000'}, {id:'shades', ch:'😎', ach:'vip'}, {id:'planet', ch:'🪐', ach:'legend'}
+];
 const ICON_BY_ID = Object.fromEntries(ICONS.map(i => [i.id, i.ch]));
 const BG_OPTIONS = ['grid','black','dark','light','blue','purple','green','wine'];
 
@@ -158,14 +171,33 @@ const ACH = [
   {id:'acc90',    name:'Cirurgião', desc:'90% de precisão com 30+ tiros.', title:'Cirurgião', test:(u,s) => s && s.shots >= 30 && s.acc >= 90},
   {id:'combo20',  name:'Imparável', desc:'Chegue a um combo de 20.', title:'Imparável', test:u => u.stats.bestCombo >= 20},
   {id:'hits1000', name:'Veterano', desc:'Destrua 1.000 alvos.', title:'Veterano', test:u => u.stats.targets >= 1000},
-  {id:'allmodes', name:'Versátil', desc:'Jogue os 6 modos.', title:'Versátil', test:u => MODES.every(m => (u.stats.modes[m.id] || 0) > 0)},
+  {id:'allmodes', name:'Versátil', desc:'Jogue todos os modos.', title:'Versátil', test:u => MODES.every(m => (u.stats.modes[m.id] || 0) > 0)},
   {id:'track150', name:'Grudado', desc:'150 pontos no Tracking em uma sessão.', title:'Grudado', test:(u,s) => s && s.mode === 'tracking' && s.score >= 150},
   {id:'immortal', name:'Imortal', desc:'Sobrevivência de 2min+ sem perder vida.', title:'Imortal', test:(u,s) => s && s.mode === 'survival' && s.dur >= 120 && s.livesLeft === 3 && !s.early},
   {id:'rich',     name:'Magnata', desc:'Ganhe 5.000 moedas no total.', title:'Magnata', test:u => u.coinsEarned >= 5000},
   {id:'skins10',  name:'Colecionador', desc:'Tenha 10 skins.', title:'Colecionador', test:u => u.owned.skins.length >= 10},
   {id:'formats',  name:'Geômetra', desc:'Desbloqueie todos os formatos.', title:'Geômetra', test:u => u.owned.formats.length >= FORMATS.length},
   {id:'legend',   name:'Lendário', desc:'Obtenha uma skin lendária.', title:'Lendário', test:u => u.owned.skins.some(id => SKIN_BY_ID[id].rarity === 'legendary')},
-  {id:'secret',   name:'???', desc:'Conquista secreta.', title:'Enigma', secret:true, test:u => u.owned.skins.includes(SECRET_SKIN)}
+  {id:'secret',   name:'???', desc:'Conquista secreta.', title:'Enigma', secret:true, test:u => u.owned.skins.includes(SECRET_SKIN)},
+  {id:'score1000', name:'Mil pontos', desc:'Faça 1.000 pontos em uma sessão.', title:'Milhar', test:(u,s) => s && s.score >= 1000},
+  {id:'perfect',  name:'Perfeição', desc:'100% de precisão com 30+ tiros.', title:'Perfeito', test:(u,s) => s && s.mode !== 'tracking' && s.shots >= 30 && s.acc === 100},
+  {id:'combo50',  name:'Frenesi', desc:'Chegue a um combo de 50.', title:'Frenético', test:u => u.stats.bestCombo >= 50},
+  {id:'hits5000', name:'Lenda do alvo', desc:'Destrua 5.000 alvos.', title:'Lenda', test:u => u.stats.targets >= 5000},
+  {id:'sess10',   name:'Aquecido', desc:'Complete 10 sessões.', title:'Aquecido', test:u => u.stats.sessions >= 10},
+  {id:'sess50',   name:'Dedicado', desc:'Complete 50 sessões.', title:'Dedicado', test:u => u.stats.sessions >= 50},
+  {id:'grid80',   name:'Cinco de uma vez', desc:'Destrua 80 alvos no Gridshot em uma sessão.', title:'Multitarefa', test:(u,s) => s && s.mode === 'grid' && s.hits >= 80},
+  {id:'rain40',   name:'Guarda-chuva', desc:'Destrua 40 alvos na Chuva em uma sessão.', title:'Guarda-chuva', test:(u,s) => s && s.mode === 'rain' && s.hits >= 40},
+  {id:'react',    name:'Reflexo de gato', desc:'Reação média abaixo de 350 ms no Reflexo (10+ alvos).', title:'Felino', test:(u,s) => s && s.mode === 'reflex' && s.hits >= 10 && s.avgReact > 0 && s.avgReact < 350},
+  {id:'focus',    name:'Olho clínico', desc:'95% de precisão com 30+ tiros no Foco.', title:'Olho clínico', test:(u,s) => s && s.mode === 'decoy' && s.shots >= 30 && s.acc >= 95},
+  {id:'prec300',  name:'Mira de elite', desc:'300 pontos no modo Precisão.', title:'Elite', test:(u,s) => s && s.mode === 'precision' && s.score >= 300},
+  {id:'marathon', name:'Maratona', desc:'Conclua uma sessão de 5 minutos.', title:'Maratonista', test:(u,s) => s && s.dur === 300 && !s.early},
+  {id:'lefty',    name:'Canhoto', desc:'Conclua uma sessão no modo canhoto.', title:'Canhoto', test:(u,s) => s && s.left},
+  {id:'rich100k', name:'Milionário', desc:'Ganhe 100.000 moedas no total.', title:'Milionário', test:u => u.coinsEarned >= 100000},
+  {id:'vip',      name:'VIP', desc:'Compre o Passe Premium.', title:'VIP', test:u => u.premium},
+  {id:'lvl5',     name:'Nível 5', desc:'Chegue ao nível 5.', title:'Experiente', test:u => levelInfo(u.xp).L >= 5},
+  {id:'lvl10',    name:'Nível 10', desc:'Chegue ao nível 10.', title:'Mestre', test:u => levelInfo(u.xp).L >= 10},
+  {id:'skins25',  name:'Acervo', desc:'Tenha 25 skins.', title:'Acervo', test:u => u.owned.skins.length >= 25},
+  {id:'epic',     name:'Épico!', desc:'Obtenha uma skin épica.', title:'Épico', test:u => u.owned.skins.some(id => SKIN_BY_ID[id].rarity === 'epic')}
 ];
 
 const PREMIUM_PRICE = 5000;   // Passe Premium: item da loja (dobra moedas e XP)
@@ -173,9 +205,12 @@ const TIPS = [
   {text:'Você pode comprar itens na loja com as moedas que ganha jogando.'},
   {text:'Está errando muito? Experimente mudar a sensibilidade.'},
   {text:'Abra a caixa de skins e descubra skins raras, épicas e lendárias.'},
-  {text:'Colete o bônus diário na loja: 200 moedas por dia.'},
+  {text:'Cada alvo destruído rende 50 moedas. Colete também o bônus diário na loja.'},
   {text:'Combo de 5 acertos seguidos passa a valer +20 pontos por alvo.'},
-  {text:'No Tracking, mantenha a mira no alvo: +3 pontos por segundo e nenhum desconto.'},
+  {text:'No Tracking, segure o botão do tiro com a mira no alvo: +3 pontos por segundo e nenhum desconto.'},
+  {text:'Canhoto? Ligue o modo canhoto em Configurações para inverter os botões do mouse.'},
+  {text:'Novos modos: Precisão, Reflexo, Chuva e Foco. Teste todos!'},
+  {text:'Seu progresso fica só neste navegador. Faça backup em Configurações.'},
   {text:'Monte sua retícula e compartilhe o código FA2 com os amigos.'},
   {text:'Prefere outro som? Teste os 7 timbres em Configurações.'},
   {text:'Treinar 10 minutos por dia já melhora sua precisão.'},
@@ -200,9 +235,19 @@ function defaultsUser() {
     stats:{sessions:0, bestScore:0, bestAcc:0, bestCombo:0, targets:0, timeMs:0, modes:{}},
     best:{}, history:[], coinLog:[], boxLog:[], lastDaily:'',
     last:{mode:'fixed', dur:30},
-    settings:{sound:true, timbre:'seco', volume:60, speed:5, bg:'grid'},
+    settings:{sound:true, timbre:'seco', volume:60, speed:5, bg:'grid', leftHanded:false},
     xh:defaultXH(), sens:{dpi:800, cm:30, lock:true}
   };
+}
+/* conta administradora (modo de demonstração local): usuário e senha ADM01.
+   Tudo desbloqueado e moedas que nunca acabam. Como o jogo é 100% local, isso vale só neste navegador. */
+const ADMIN_NAME = 'ADM01', ADMIN_KEY = 'adm01', ADMIN_COINS = 999999999;
+function applyAdmin(u) {
+  u.admin = true; u.premium = true; u.coins = ADMIN_COINS;
+  u.unlocked = ACH.map(a => a.id);
+  u.owned.skins = SKINS.map(k => k.id);
+  u.owned.formats = FORMATS.map(f => f.id);
+  return u;
 }
 const XH_SHAPES = ['empty','cross','dot','circle','chevron'];
 function hydrate(u) {
@@ -225,6 +270,7 @@ function hydrate(u) {
   u.xp = Math.max(0, Math.floor(+u.xp || 0));
   delete u.settings.autoFs;
   if (legacy) { u.premium = false; u.v = 2; }
+  if (u.admin) applyAdmin(u);
   return u;
 }
 function loadDB() {
@@ -275,21 +321,30 @@ $('auth-form').addEventListener('submit', async e => {
   const name = $('auth-user').value.trim(), pass = $('auth-pass').value;
   if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) return authMsg('Nome: 3 a 16 caracteres (letras, números e _).');
   const key = name.toLowerCase();
+  const isAdminLogin = name.toUpperCase() === ADMIN_NAME && pass.trim().toUpperCase() === ADMIN_NAME;   // vale nas duas abas (Entrar ou Criar conta), sem diferenciar maiúsculas
   $('auth-submit').disabled = true;
   try {
-    if (authMode === 'register') {
+    if (authMode === 'register' && !isAdminLogin) {
       if (pass.length < 8 || !/[A-Za-z]/.test(pass) || !/\d/.test(pass)) return authMsg('Senha: 8+ caracteres, com letras e números.');
-      if (db.users[key]) return authMsg('Esse nome já está em uso.');
+      if (db.users[key] || key === 'convidado' || key === ADMIN_KEY) return authMsg('Esse nome já está em uso.');
       const salt = randHex(8);
       db.users[key] = hydrate({name, salt, hash: await hashPass(salt, pass), createdAt: Date.now()});
+    } else if (isAdminLogin) {
+      if (!db.users[ADMIN_KEY]) db.users[ADMIN_KEY] = hydrate({name: ADMIN_NAME, admin: true, salt: '', hash: '', createdAt: Date.now()});
+      applyAdmin(db.users[ADMIN_KEY]);
     } else {
       const u = db.users[key];
-      if (!u || (await hashPass(u.salt, pass)) !== u.hash) return authMsg('Usuário ou senha incorretos.');
+      if (!u || u.admin || (await hashPass(u.salt, pass)) !== u.hash) return authMsg('Usuário ou senha incorretos.');
     }
     db.session = key; save();
     $('auth-pass').value = '';
     enterApp();
   } finally { $('auth-submit').disabled = false; }
+});
+$('btn-guest').addEventListener('click', () => {
+  const key = '@convidado';   // o @ não passa na regra de nome, então nunca colide com uma conta
+  if (!db.users[key]) db.users[key] = hydrate({name: 'Convidado', guest: true, createdAt: Date.now()});
+  db.session = key; save(); enterApp();
 });
 $('btn-logout').addEventListener('click', () => {
   cancelSession(); closeFocus(); stopTips(); db.session = null; save(); user = null;
@@ -550,7 +605,7 @@ const XH_PRESETS = [
 ];
 
 /* ===================== estado do jogo ===================== */
-const wrap = $('arena-wrap'), cv = $('game-canvas'), ctx = cv.getContext('2d');
+const stage = $('arena-stage'), wrap = $('arena-wrap'), cv = $('game-canvas'), ctx = cv.getContext('2d');
 const hctx = document.createElement('canvas').getContext('2d');
 let W = 800, H = 500, DPR = 1;
 const cursor = {x: 400, y: 250};
@@ -558,8 +613,16 @@ const lastMouse = {x: -1, y: -1};
 const G = {
   state: 'idle', token: 0, mode: 'fixed', dur: 30, targets: [], parts: [], lastPos: null,
   score: 0, hits: 0, misses: 0, combo: 0, maxCombo: 0, lives: 3, trackOn: 0,
-  startT: 0, elapsed: 0, pulse: 0, hadLock: false, hoverOn: false, timeStr: ''
+  startT: 0, elapsed: 0, pulse: 0, hadLock: false, hoverOn: false, timeStr: '',
+  btn: false, counting: false, reactSum: 0, reactN: 0, rainT: 0
 };
+
+/* Poki: se o PokiSDK estiver na página, avisa quando o jogo começa e para. Sem o SDK, nada acontece. */
+let pokiOn = false;
+function pokiStart() { if (pokiOn) return; pokiOn = true; try { window.PokiSDK && window.PokiSDK.gameplayStart(); } catch (e) {} }
+function pokiStop() { if (!pokiOn) return; pokiOn = false; try { window.PokiSDK && window.PokiSDK.gameplayStop(); } catch (e) {} }
+const leftHanded = () => !!(user && user.settings.leftHanded);
+const shotButton = () => leftHanded() ? 2 : 0;   // 0 = esquerdo, 2 = direito
 
 function resizeCanvas() {
   const r = wrap.getBoundingClientRect();
@@ -577,20 +640,31 @@ function sensFactor() { const s = user.sens; return REF360 / (s.dpi * s.cm / 2.5
 
 /* --- alvos --- */
 const speedPx = () => (80 + user.settings.speed * 50) * (G.mode === 'tracking' ? .75 : 1);
-const baseR = () => G.mode === 'grid' ? 26 : G.mode === 'tracking' ? 34 : G.mode === 'moving' ? 28 : 30;
+const baseR = () => G.mode === 'grid' ? 26 : G.mode === 'tracking' ? 34 : G.mode === 'moving' ? 28 : G.mode === 'precision' ? 14 : G.mode === 'rain' ? 26 : 30;
+const fallSpeed = () => 70 + user.settings.speed * 30 + Math.min(120, G.elapsed / 1000 * 2);
+const isLive = t => !t.wait || t.age >= t.wait;   // Reflexo: o alvo só aparece depois do atraso
 function survivalParams() {
   const lv = Math.floor(G.hits / 5);
   return {lv, r0: Math.max(18, 42 * Math.pow(.94, lv)), life: Math.max(650, 2000 * Math.pow(.9, lv))};
 }
-function spawn(replace) {
-  const t = {x: 0, y: 0, r: baseR(), age: 0, life: Infinity, r0: 0, ang: rnd(0, 6.283), turn: rnd(.5, 1.4)};
+function spawn(replace, opts) {
+  const t = {x: 0, y: 0, r: baseR(), age: 0, life: Infinity, r0: 0, ang: rnd(0, 6.283), turn: rnd(.5, 1.4), wait: 0, vy: 0, decoy: !!(opts && opts.decoy)};
   if (G.mode === 'flick') t.life = 800;
   if (G.mode === 'survival') { const p = survivalParams(); t.r0 = p.r0; t.r = p.r0; t.life = p.life; }
+  if (G.mode === 'rain') { t.x = rnd(t.r + 10, W - t.r - 10); t.y = -t.r; t.vy = fallSpeed(); return t; }
   const m = t.r * 1.4 + 10;
   const bad = () => G.targets.some(o => o !== replace && Math.hypot(o.x - t.x, o.y - t.y) < (o.r + t.r) * 1.7) ||
                     (G.lastPos && Math.hypot(G.lastPos.x - t.x, G.lastPos.y - t.y) < 140);
   for (let i = 0; i < 14; i++) { t.x = rnd(m, W - m); t.y = rnd(m, H - m); if (!bad()) break; }
+  if (G.mode === 'reflex' && G.state === 'playing') t.wait = rnd(400, 1300);
   return t;
+}
+/* Quantos alvos cada modo mostra e quais são falsos (Foco). Chuva começa com um alvo parado no alto. */
+function fillTargets() {
+  G.targets = [];
+  const n = G.mode === 'grid' ? 5 : G.mode === 'decoy' ? 3 : 1;
+  for (let i = 0; i < n; i++) G.targets.push(spawn(null, {decoy: G.mode === 'decoy' && i > 0}));
+  if (G.mode === 'rain' && G.state === 'countdown') G.targets[0].y = rnd(H * .15, H * .4);
 }
 function hitTest(t, x, y) {
   const d = Math.hypot(x - t.x, y - t.y), shape = user.equip.format;
@@ -607,25 +681,42 @@ function burst(x, y, color) {
 function floatText(x, y, txt, color) { G.parts.push({x, y, vx: 0, vy: -60, life: 0, max: .7, c: color, txt}); }
 
 /* --- acertos e erros --- */
-function currentCoins() { const m = user.premium ? 2 : 1; return (G.mode === 'tracking' ? Math.floor(G.trackOn / 5000) : G.hits) * 2 * m; }
+function currentCoins() {
+  const m = user.premium ? 2 : 1;
+  return (G.mode === 'tracking' ? Math.floor(G.trackOn / TRACK_COIN_MS) : G.hits) * COIN_TARGET * m;
+}
 function updateHud() {
   $('hud-score').textContent = fmtNum(Math.floor(G.score));
   $('hud-combo').textContent = 'x' + G.combo;
   $('hud-coins').textContent = fmtNum(currentCoins());
+  $('hud-miss').textContent = fmtNum(G.misses);
+  $('hud-btn-pill').classList.toggle('hidden', G.mode !== 'tracking');
+  $('hud-btn-pill').classList.toggle('on', G.counting);
+  $('hud-btn').textContent = leftHanded() ? 'Botão direito' : 'Botão esquerdo';
   if (G.mode === 'survival') $('hud-lives').textContent = '♥'.repeat(Math.max(0, G.lives)) + '♡'.repeat(Math.max(0, 3 - G.lives)) + '  Nv ' + (survivalParams().lv + 1);
 }
 function shoot() {
   if (G.state !== 'playing' || G.mode === 'tracking') return;
   let hit = null, best = Infinity;
-  for (const t of G.targets) { if (hitTest(t, cursor.x, cursor.y)) { const d = Math.hypot(t.x - cursor.x, t.y - cursor.y); if (d < best) { best = d; hit = t; } } }
-  if (hit) {
+  for (const t of G.targets) { if (isLive(t) && hitTest(t, cursor.x, cursor.y)) { const d = Math.hypot(t.x - cursor.x, t.y - cursor.y); if (d < best) { best = d; hit = t; } } }
+  if (hit && hit.decoy) {
+    // Foco: acertar um alvo falso conta como erro
+    G.misses++; G.combo = 0; G.score = Math.max(0, G.score - 10);
+    floatText(hit.x, hit.y - hit.r, 'Falso! -10', '#ff0055'); playMiss();
+    G.targets[G.targets.indexOf(hit)] = spawn(hit, {decoy: true});
+  } else if (hit) {
     G.hits++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-    const pts = G.combo >= 5 ? 20 : 15; G.score += pts; G.pulse = 1;
+    let pts = G.combo >= 5 ? 20 : 15;
+    if (G.mode === 'reflex') { const rt = hit.age - hit.wait; G.reactSum += rt; G.reactN++; if (rt < 500) pts += 5; }
+    G.score += pts; G.pulse = 1;
     const now = performance.now(), sk = SKIN_BY_ID[user.equip.skin];
     burst(hit.x, hit.y, skinColor(sk, now)); floatText(hit.x, hit.y - hit.r, '+' + pts, '#ffffff');
+    if (G.combo > 0 && G.combo % 10 === 0) floatText(W / 2, H * .2, 'COMBO x' + G.combo + '!', '#f5b421');
     playHit();
     G.lastPos = {x: hit.x, y: hit.y};
-    G.targets[G.targets.indexOf(hit)] = spawn(hit);
+    if (G.mode === 'rain') G.targets.splice(G.targets.indexOf(hit), 1);
+    else if (G.mode === 'decoy') fillTargets();
+    else G.targets[G.targets.indexOf(hit)] = spawn(hit);
   } else {
     G.misses++; G.combo = 0; G.score = Math.max(0, G.score - 10);
     floatText(cursor.x, cursor.y - 14, '-10', '#ff0055'); playMiss();
@@ -638,7 +729,16 @@ function update(dt, now) {
   G.elapsed = now - G.startT;
   if (G.elapsed >= G.dur * 1000) { endSession(false); return; }
   const mv = G.mode === 'moving' || G.mode === 'tracking';
-  for (let i = 0; i < G.targets.length; i++) {
+  if (G.mode === 'rain') {
+    // Chuva: novos alvos entram por cima; o que passa do chão vira erro
+    G.rainT -= dt;
+    if (G.rainT <= 0 && G.targets.length < 5) { G.targets.push(spawn()); G.rainT = rnd(.55, 1.1); }
+    for (let i = G.targets.length - 1; i >= 0; i--) {
+      const t = G.targets[i]; t.age += dt * 1000; t.y += t.vy * dt;
+      if (t.y - t.r > H) { G.targets.splice(i, 1); G.misses++; G.combo = 0; floatText(t.x, H - 24, 'Perdeu', '#ff0055'); playMiss(); updateHud(); }
+    }
+  }
+  for (let i = 0; i < G.targets.length && G.mode !== 'rain'; i++) {
     const t = G.targets[i]; t.age += dt * 1000;
     if (mv) {
       if (G.mode === 'tracking') { t.turn -= dt; if (t.turn <= 0) { t.ang += rnd(-1.5, 1.5); t.turn = rnd(.5, 1.4); } }
@@ -658,14 +758,16 @@ function update(dt, now) {
     }
   }
   if (G.mode === 'tracking' && G.targets[0]) {
+    // Tracking: só pontua com a mira no alvo E o botão do tiro pressionado
     G.hoverOn = hitTest(G.targets[0], cursor.x, cursor.y);
-    if (G.hoverOn) { G.trackOn += dt * 1000; G.score += 3 * dt; G.hits = Math.floor(G.trackOn / 5000); }
+    G.counting = G.hoverOn && G.btn;
+    if (G.counting) { G.trackOn += dt * 1000; G.score += 3 * dt; G.hits = Math.floor(G.trackOn / TRACK_COIN_MS); }
     updateHud();
   }
   G.pulse = Math.max(0, G.pulse - dt / .18);
   for (let i = G.parts.length - 1; i >= 0; i--) { const p = G.parts[i]; p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.life >= p.max) G.parts.splice(i, 1); }
   const ts = Math.max(0, G.dur - G.elapsed / 1000).toFixed(1);
-  if (ts !== G.timeStr) { G.timeStr = ts; $('hud-time').textContent = ts; }
+  if (ts !== G.timeStr) { G.timeStr = ts; $('hud-time').textContent = ts; $('hud-time-pill').classList.toggle('urgent', +ts <= 5); }
 }
 
 function drawArena(now) {
@@ -673,12 +775,21 @@ function drawArena(now) {
   if (!user) return;
   const skin = SKIN_BY_ID[user.equip.skin], shape = user.equip.format;
   const pre = G.state === 'countdown';
+  const decoySkin = SKIN_BY_ID[user.equip.skin === 'comum-grafite' ? 'comum-vermelho' : 'comum-grafite'];
   for (const t of G.targets) {
+    if (!isLive(t)) continue;   // Reflexo: ainda escondido
+    const k = pre || G.mode === 'survival' ? 1 : Math.min(1, .5 + t.age / 140 * .5);   // alvo "nasce" em 140 ms
     ctx.globalAlpha = pre ? .65 : 1;
-    drawTarget(ctx, shape, skin, t.x, t.y, t.r, now);
+    drawTarget(ctx, shape, t.decoy ? decoySkin : skin, t.x, t.y, t.r * k, now);
+    if (t.decoy) { ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.lineCap = 'round'; const q = t.r * .5; ctx.beginPath(); ctx.moveTo(t.x - q, t.y - q); ctx.lineTo(t.x + q, t.y + q); ctx.moveTo(t.x + q, t.y - q); ctx.lineTo(t.x - q, t.y + q); ctx.stroke(); ctx.restore(); }
     if (pre) { ctx.save(); ctx.strokeStyle = 'rgba(0,255,204,.8)'; ctx.lineWidth = 2; ctx.setLineDash([7, 6]); ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 1.5, 0, 6.283); ctx.stroke(); ctx.restore(); }
     ctx.globalAlpha = 1;
-    if (G.mode === 'tracking' && G.hoverOn) { ctx.strokeStyle = 'rgba(57,255,106,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 1.35, 0, 6.283); ctx.stroke(); }
+    if (G.mode === 'tracking' && G.hoverOn) {
+      // verde = contando pontos; dourado tracejado = na mira, mas sem o botão pressionado
+      ctx.save(); ctx.lineWidth = 3;
+      if (G.counting) ctx.strokeStyle = 'rgba(57,255,106,.9)'; else { ctx.strokeStyle = 'rgba(245,180,33,.9)'; ctx.setLineDash([6, 5]); }
+      ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 1.35, 0, 6.283); ctx.stroke(); ctx.restore();
+    }
   }
   for (const p of G.parts) {
     ctx.globalAlpha = 1 - p.life / p.max;
@@ -701,27 +812,32 @@ wrap.addEventListener('mousemove', e => {
     cursor.x = clamp(e.clientX - r.left, 0, W); cursor.y = clamp(e.clientY - r.top, 0, H);
   }
 });
-wrap.addEventListener('mousedown', e => { if (e.button === 0 && G.state === 'playing') { e.preventDefault(); shoot(); } });
+// Botão do tiro: esquerdo (padrão) ou direito (modo canhoto). O outro botão não faz nada.
+wrap.addEventListener('mousedown', e => { if (e.button === shotButton() && G.state === 'playing') { e.preventDefault(); G.btn = true; shoot(); } });
+window.addEventListener('mouseup', e => { if (e.button === shotButton()) G.btn = false; });
+window.addEventListener('blur', () => { G.btn = false; });
 wrap.addEventListener('contextmenu', e => { if (G.state === 'playing' || G.state === 'countdown') e.preventDefault(); });
 
 /* --- sessão: iniciar, cancelar, terminar --- */
 function setUILocked(l) { $('view-play').classList.toggle('locked', l); }
 /* Semicheia: a arena ocupa quase a janela, com borda e o resto escurecido (sem tela cheia do navegador) */
-function enterFocus() { wrap.classList.add('focus'); document.body.classList.add('focus-open'); }
+function enterFocus() { wrap.classList.add('focus'); stage.classList.add('focus'); document.body.classList.add('focus-open'); }
 function closeFocus() {
-  wrap.classList.remove('focus'); document.body.classList.remove('focus-open');
+  wrap.classList.remove('focus'); stage.classList.remove('focus'); document.body.classList.remove('focus-open');
   $('btn-close-focus').classList.add('hidden');
   requestAnimationFrame(resizeCanvas);
 }
 function teardown() {
-  setUILocked(false); wrap.classList.remove('live'); $('countdown').classList.add('hidden');
+  setUILocked(false); wrap.classList.remove('live'); stage.classList.remove('live', 'cd'); $('countdown').classList.add('hidden');
+  G.btn = false; G.counting = false; pokiStop();
   if (document.pointerLockElement) document.exitPointerLock();
   G.hadLock = false; G.targets = []; G.parts = [];
 }
+const defaultHint = () => 'Clique para começar. Tiro: botão ' + (leftHanded() ? 'direito (modo canhoto)' : 'esquerdo') + '. Esc cancela a sessão.';
 function showOverlay(msg, label, hint) {
   $('overlay-msg').textContent = msg || '';
   $('btn-start').textContent = label;
-  $('overlay-hint').textContent = hint || 'Clique para começar. Esc cancela a sessão.';
+  $('overlay-hint').textContent = hint || defaultHint();
   $('result-panel').classList.toggle('hidden', G.state !== 'ended');
   $('btn-close-focus').classList.toggle('hidden', !wrap.classList.contains('focus'));
 }
@@ -735,14 +851,14 @@ function cancelSession(msg) {
 }
 async function runCountdown(token) {
   const el = $('countdown'), num = $('cd-num'), lab = $('cd-label');
-  el.classList.remove('hidden');
+  el.classList.remove('hidden'); stage.classList.add('cd');   // a contagem aparece na barra de cima, fora da arena
   for (const n of ['3', '2', '1', 'GO']) {
     if (G.token !== token) return false;
     num.textContent = n; lab.classList.toggle('hidden', n === 'GO');
     num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
     await sleep(n === 'GO' ? 450 : 900);
   }
-  el.classList.add('hidden');
+  el.classList.add('hidden'); stage.classList.remove('cd');
   return G.token === token;
 }
 async function startSession() {
@@ -752,7 +868,8 @@ async function startSession() {
   G.state = 'countdown'; const token = ++G.token;
   G.parts = []; G.hoverOn = false; G.hadLock = false;
   G.score = 0; G.hits = 0; G.misses = 0; G.combo = 0; G.maxCombo = 0; G.lives = 3; G.trackOn = 0; G.lastPos = null; G.pulse = 0;
-  setUILocked(true); enterFocus(); wrap.classList.add('live');
+  G.btn = false; G.counting = false; G.reactSum = 0; G.reactN = 0; G.rainT = .5;
+  setUILocked(true); enterFocus(); wrap.classList.add('live'); stage.classList.add('live');
   $('hud-lives-pill').classList.toggle('hidden', G.mode !== 'survival');
   $('hud-time').textContent = G.dur.toFixed(1); G.timeStr = '';
   if (user.sens.lock && wrap.requestPointerLock) {
@@ -764,13 +881,11 @@ async function startSession() {
     cursor.x = lastMouse.x - r.left; cursor.y = lastMouse.y - r.top;
   } else { cursor.x = W / 2; cursor.y = H / 2; }
   // o(s) alvo(s) já aparecem durante a contagem, para ninguém começar no susto (ainda não dá para acertar)
-  G.targets = [];
-  const n = G.mode === 'grid' ? 3 : 1;
-  for (let i = 0; i < n; i++) G.targets.push(spawn());
+  fillTargets();
   updateHud();
   if (!(await runCountdown(token))) return;
-  G.targets.forEach(t => { t.age = 0; });
-  G.startT = performance.now(); G.elapsed = 0; G.state = 'playing';
+  G.targets.forEach(t => { t.age = 0; if (G.mode === 'reflex') t.wait = rnd(500, 1200); });
+  G.startT = performance.now(); G.elapsed = 0; G.state = 'playing'; pokiStart();
 }
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === wrap) G.hadLock = true;
@@ -786,6 +901,7 @@ $('btn-start').addEventListener('click', startSession);
 
 function rankKey(m, d) { return m + '|' + d; }
 function submitRank(mode, dur, score, acc) {
+  if (user.admin) return 0;   // a conta admin não entra no ranking
   const k = rankKey(mode, dur), list = db.ranking[k] || (db.ranking[k] = []), low = user.name.toLowerCase();
   const ex = list.find(e => e.user.toLowerCase() === low);
   if (ex) { if (score > ex.score) { ex.score = score; ex.acc = acc; ex.ts = Date.now(); } }
@@ -796,6 +912,7 @@ function submitRank(mode, dur, score, acc) {
 }
 function addCoins(n, why) {
   if (!n) return;
+  if (user.admin) { if (n > 0) user.coinsEarned += n; user.coins = ADMIN_COINS; save(); renderCoins(); return; }   // admin: moedas infinitas
   user.coins += n; if (n > 0) user.coinsEarned += n;
   user.coinLog.unshift({ts: Date.now(), amt: n, why, bal: user.coins});
   if (user.coinLog.length > 100) user.coinLog.length = 100;
@@ -841,7 +958,9 @@ function endSession(early) {
   if (!tracking && dur === 60 && acc === 100 && G.hits >= 40 && !user.owned.skins.includes(SECRET_SKIN)) {
     user.owned.skins.push(SECRET_SKIN); secret = true; badges.push(['Skin secreta desbloqueada!', 'pink']);
   }
-  const got = checkAch({mode, dur, score, acc, shots, hits: G.hits, maxCombo: G.maxCombo, livesLeft: G.lives, early});
+  const avgReact = G.reactN ? Math.round(G.reactSum / G.reactN) : 0;
+  if (mode === 'reflex' && avgReact) badges.push(['Reação média: ' + avgReact + ' ms', '']);
+  const got = checkAch({mode, dur, score, acc, shots, hits: G.hits, maxCombo: G.maxCombo, livesLeft: G.lives, early, avgReact, left: leftHanded()});
   got.forEach(a => badges.push(['Conquista: ' + a.name, 'green']));
   save();
   // resultado
@@ -858,8 +977,10 @@ function endSession(early) {
 }
 
 /* ===================== interface: modos, duração, ranking ===================== */
+const modeHelp = m => m.id === 'tracking' ? `Mantenha a mira sobre um alvo em movimento COM o botão ${leftHanded() ? 'direito' : 'esquerdo'} pressionado. Ganha 3 pontos por segundo e nunca perde pontos.` : m.help;
+const modeDesc = m => m.id === 'tracking' ? `Segure o botão ${leftHanded() ? 'direito' : 'esquerdo'} sobre o alvo. +3 pts/s, sem perdas.` : m.desc;
 function renderModes() {
-  $('mode-list').innerHTML = MODES.map(m => `<button class="mode-btn ${m.id === user.last.mode ? 'active' : ''}" data-mode="${m.id}" type="button"><b>${m.name}</b><span>${m.desc}</span></button>`).join('');
+  $('mode-list').innerHTML = MODES.map(m => `<div class="mode-item"><button class="mode-btn ${m.id === user.last.mode ? 'active' : ''}" data-mode="${m.id}" type="button"><b>${m.name}</b><span>${modeDesc(m)}</span></button><button class="help-btn" data-help="${m.id}" type="button" aria-label="O que é ${m.name}?" aria-expanded="false" title="O que é este modo?">?</button><div class="help-pop hidden" role="tooltip">${modeHelp(m)}</div></div>`).join('');
   $('dur-list').innerHTML = DURS.map(d => `<button class="chip-btn ${d === user.last.dur ? 'active' : ''}" data-dur="${d}" type="button">${fmtDur(d)}</button>`).join('');
   renderMiniRank();
 }
@@ -868,6 +989,14 @@ function renderMiniRank() {
   $('mini-rank-label').textContent = `${MODE_BY_ID[user.last.mode].name} · ${fmtDur(user.last.dur)}`;
   $('mini-rank').innerHTML = list.length ? list.map(e => `<li>${esc(e.user)}<span class="sc">${fmtNum(e.score)}</span></li>`).join('') : '<li class="muted">Sem registros ainda</li>';
 }
+function closeHelp() { document.querySelectorAll('.help-pop').forEach(p => p.classList.add('hidden')); document.querySelectorAll('.help-btn').forEach(b => b.setAttribute('aria-expanded', 'false')); }
+document.addEventListener('click', e => {
+  const h = e.target.closest('[data-help]');
+  const was = h && !h.parentElement.querySelector('.help-pop').classList.contains('hidden');
+  closeHelp();
+  if (h && !was) { h.parentElement.querySelector('.help-pop').classList.remove('hidden'); h.setAttribute('aria-expanded', 'true'); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
 $('view-play').addEventListener('click', e => {
   if (G.state === 'countdown' || G.state === 'playing') return;
   const m = e.target.closest('[data-mode]'), d = e.target.closest('[data-dur]');
@@ -877,7 +1006,7 @@ $('view-play').addEventListener('click', e => {
 });
 
 /* ===================== moedas e topo ===================== */
-function renderCoins() { $('top-coins').textContent = fmtNum(user.coins); if ($('view-shop').classList.contains('active')) renderShop(); }
+function renderCoins() { $('top-coins').textContent = user.admin ? '∞' : fmtNum(user.coins); if ($('view-shop').classList.contains('active')) renderShop(); }
 function renderTop() {
   $('top-icon').textContent = ICON_BY_ID[user.icon] || '🎯';
   $('top-name').textContent = (user.premium ? '★ ' : '') + user.name;
@@ -987,7 +1116,10 @@ function renderProfile() {
   $('prof-title').textContent = user.title || 'Sem título';
   const LV = levelInfo(user.xp);
   $('prof-level').textContent = 'Nível ' + LV.L; $('prof-xp-fill').style.width = LV.pct.toFixed(1) + '%'; $('prof-xp').textContent = fmtNum(LV.cur) + ' / ' + fmtNum(LV.need) + ' XP';
-  $('prof-icons').innerHTML = ICONS.map(i => `<button class="icon-btn ${user.icon === i.id ? 'active' : ''}" data-icon="${i.id}" type="button">${i.ch}</button>`).join('');
+  $('prof-icons').innerHTML = ICONS.map(i => {
+    const lock = i.ach && !user.unlocked.includes(i.ach), need = i.ach ? ACH.find(a => a.id === i.ach) : null;
+    return `<button class="icon-btn ${user.icon === i.id ? 'active' : ''} ${lock ? 'locked' : ''}" data-icon="${i.id}" type="button" ${lock ? `disabled title="Desbloqueie com a conquista: ${esc(need.name)}"` : ''}>${lock ? '🔒' : i.ch}</button>`;
+  }).join('');
   const s = user.stats;
   const fav = Object.entries(s.modes).sort((a, b) => b[1] - a[1])[0];
   const mins = Math.floor(s.timeMs / 60000), secs = Math.floor(s.timeMs / 1000) % 60;
@@ -1013,7 +1145,7 @@ function renderRanking() {
 }
 $('rk-mode').addEventListener('change', renderRanking);
 $('rk-dur').addEventListener('change', renderRanking);
-$('prof-icons').addEventListener('click', e => { const b = e.target.closest('[data-icon]'); if (!b) return; user.icon = b.dataset.icon; save(); renderTop(); renderProfile(); });
+$('prof-icons').addEventListener('click', e => { const b = e.target.closest('[data-icon]'); if (!b || b.disabled) return; user.icon = b.dataset.icon; save(); renderTop(); renderProfile(); });
 $('title-select').addEventListener('change', e => { user.title = e.target.value; save(); renderProfile(); });
 $('btn-profile-chip').addEventListener('click', () => setView('profile'));
 
@@ -1129,7 +1261,7 @@ const CB_OPTIONS = [['none', 'Desligado'], ['protanopia', 'Protanopia'], ['deute
 function renderSettings() {
   const s = user.settings;
   $('set-speed').value = s.speed; $('set-speed-out').textContent = s.speed;
-  $('set-sound').checked = s.sound;
+  $('set-sound').checked = s.sound; $('set-left').checked = !!s.leftHanded;
   $('set-volume').value = s.volume; $('set-volume-out').textContent = s.volume + '%';
   $('set-bg-tiles').innerHTML = BG_OPTIONS.map(id => `<button class="bg-tile ${s.bg === id ? 'active' : ''}" data-set="bg" data-val="${id}" data-bg="${id}" title="${BG_NAMES[id]}" type="button"><span>${BG_NAMES[id]}</span></button>`).join('');
   $('set-timbre-chips').innerHTML = TIMBRES.map(t => `<button class="chip-btn ${s.timbre === t.id ? 'active' : ''}" data-set="timbre" data-val="${t.id}" type="button">${t.name}</button>`).join('');
@@ -1138,6 +1270,29 @@ function renderSettings() {
 }
 $('set-speed').addEventListener('input', e => { user.settings.speed = +e.target.value; $('set-speed-out').textContent = e.target.value; save(); });
 $('set-sound').addEventListener('change', e => { user.settings.sound = e.target.checked; save(); });
+$('set-left').addEventListener('change', e => { user.settings.leftHanded = e.target.checked; G.btn = false; save(); renderModes(); showOverlay('', $('btn-start').textContent); toast(e.target.checked ? 'Modo canhoto ligado: o tiro agora é o botão direito.' : 'Modo canhoto desligado: o tiro é o botão esquerdo.'); });
+
+/* backup do progresso (o jogo é local: sem servidor, o arquivo é a sua cópia de segurança) */
+function exportProgress() {
+  const key = db.session, data = {app: 'freeaim', v: 1, key, user: db.users[key]};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'}));
+  a.download = 'freeaim-' + (user.name || 'perfil').toLowerCase().replace(/[^a-z0-9_]/g, '') + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  toast('Backup salvo no seu computador.');
+}
+function importProgress(text) {
+  let d; try { d = JSON.parse(text); } catch (e) { return toast('Arquivo inválido.', 'warn'); }
+  if (!d || d.app !== 'freeaim' || !isObj(d.user) || typeof d.key !== 'string' || !/^(@convidado|[a-z0-9_]{3,16})$/.test(d.key) || typeof d.user.name !== 'string')
+    return toast('Esse arquivo não é um backup do FREEAIM.', 'warn');
+  d.user.name = d.user.name.slice(0, 16);
+  db.users[d.key] = hydrate(d.user); db.session = d.key; save(); enterApp();
+  toast('Progresso importado: ' + d.user.name, 'gold');
+}
+$('btn-export').addEventListener('click', exportProgress);
+$('btn-import').addEventListener('click', () => $('file-import').click());
+$('file-import').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) f.text().then(importProgress); });
 $('set-volume').addEventListener('input', e => { user.settings.volume = +e.target.value; $('set-volume-out').textContent = e.target.value + '%'; save(); });
 $('btn-test-sound').addEventListener('click', playHit);
 $('view-settings').addEventListener('click', e => {
@@ -1153,7 +1308,7 @@ $('view-settings').addEventListener('click', e => {
 });
 $('btn-set-reset').addEventListener('click', () => {
   user.settings = defaultsUser().settings; db.ui.theme = 'dark'; db.ui.colorblind = 'none';
-  wrap.dataset.bg = user.settings.bg; applyTheme(); save(); renderSettings(); toast('Configurações restauradas.');
+  wrap.dataset.bg = user.settings.bg; applyTheme(); save(); renderSettings(); renderModes(); toast('Configurações restauradas.');
 });
 
 /* ===================== navegação ===================== */
