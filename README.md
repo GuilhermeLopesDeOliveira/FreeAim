@@ -11,9 +11,7 @@ Sem instalar nada, sem framework, sem banco de dados.
 ![Sem dependências](https://img.shields.io/badge/depend%C3%AAncias-0-3DDBC8?style=flat)
 ![Só computador](https://img.shields.io/badge/plataforma-desktop-FFB547?style=flat)
 
-[▶ **Jogar agora**](#-como-rodar) · [📄 Documentação em PDF](docs/FREEAIM_Documentacao.pdf) · [🧠 Conceitos aplicados](#-conceitos-de-programação-avançada-e-estrutura-de-dados)
-
-<img src="docs/menu.png" alt="Menu do FREEAIM com 9 modos de jogo" width="760">
+[▶ **Jogar agora**](https://guilhermelopesdeoliveira.github.io/FreeAim/) · [📄 Documentação](./Documentação/FreeAim.pdf) · [🧠 Conceitos aplicados](#-conceitos-de-programação-avançada-e-estrutura-de-dados)
 
 </div>
 
@@ -78,11 +76,6 @@ Dê **duplo clique** em um modo (ou clique em **Configurar**, ou aperte **T**) p
 - **Idioma:** botão **EN / PT-BR** traduz a página inteira.
 - **Backup:** exportar e importar o progresso em arquivo.
 
-<div align="center">
-<img src="docs/gridshot.png" alt="Gridshot em andamento" width="760">
-<br><sub>Gridshot: tempo, pontos e erros ficam numa barra fora da arena, para não cobrir os alvos.</sub>
-</div>
-
 ## 🚀 Como rodar
 
 Não precisa instalar nada.
@@ -91,7 +84,7 @@ Não precisa instalar nada.
 
 **Opção 2 — arquivos separados:** abra o `index.html`. Ele usa `style.css`, `script.js` e `i18n.js`, que precisam estar na mesma pasta.
 
-**Opção 3 — GitHub Pages:** [`[link do GitHub Pages]`](#) *(preencher depois de publicar)*.
+**Opção 3 — GitHub Pages:** [`[link do GitHub Pages]`](https://guilhermelopesdeoliveira.github.io/FreeAim/)
 
 > As fontes (Space Grotesk, Orbitron e Baloo 2) vêm do Google Fonts. Sem internet, o jogo usa as fontes do sistema.
 
@@ -138,19 +131,6 @@ Entrada (mouse, teclado, aba)  →  Estado G  →  Laço requestAnimationFrame  
 | Assíncrono | `async/await` na contagem 3-2-1 e no hash SHA-256 |
 | Complexidade | Acerto por distância euclidiana: O(n) por clique |
 
-## 🤖 Uso de IA
-
-O projeto foi desenvolvido com apoio de duas ferramentas de IA, comparadas com o mesmo prompt de teste (Tracking com botão pressionado, modo canhoto e janela que perde o foco):
-
-| Critério | Claude Sonnet 5.5 | [Segunda IA] |
-|---|---|---|
-| Funcionou de primeira? | Sim, nos testes de Tracking e canhoto | `[preencher]` |
-| Botão pressionado | `G.btn` liga no `mousedown` e desliga no `mouseup` | `[preencher]` |
-| Janela perde o foco | Ouvinte de `blur` solta o botão | `[preencher]` |
-| Bugs encontrados | Nenhum no código do Tracking | `[preencher]` |
-
-Os **35 prompts** usados, com o resultado de cada um, estão no [`Freeaim.md`](Freeaim.md) e no [PDF de documentação](docs/FREEAIM_Documentacao.pdf), junto com os bugs encontrados e como foram corrigidos (antes e depois). Dois modos (Sniper vs Runners e Micro ajuste) chegaram a ser feitos e foram retirados por não ficarem bons: a IA acelera, mas o grupo decide.
-
 ## ✅ Testes
 
 O jogo tem **268 verificações automáticas** da lógica (contagem, modos, pontuação, loja, conquistas, idioma, persistência) e foi aberto no Chromium sem erros de página. Ainda é preciso conferir em um navegador com tela e áudio reais o **Pointer Lock**, o **som** e as skins lendárias em movimento.
@@ -161,17 +141,15 @@ Sem servidor, não existe ranking global, anti-cheat nem pagamento real. O ranki
 
 ## 👥 Equipe
 
-| Integrante | Contribuição |
-|---|---|
-| `[Nome 1]` | `[ex.: lógica dos modos de jogo]` |
-| `[Nome 2]` | `[ex.: interface e visual]` |
-| `[Nome 3]` | `[ex.: loja, economia e conquistas]` |
-| `[Nome 4]` | `[ex.: testes e documentação]` |
+| Integrantes 
+|---|
+| `Guilherme Lopes de Oliveira` |
+| `Lucas Duarte Pires` | 
 
 ## 🙏 Créditos
 
 - Fontes: [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk), [Orbitron](https://fonts.google.com/specimen/Orbitron) e [Baloo 2](https://fonts.google.com/specimen/Baloo+2), do Google Fonts, sob a licença SIL OFL.
-- IA: Claude Sonnet 5.5 (Anthropic) e `[segunda IA]`.
+- IA: Claude Sonnet 5.5 (Anthropic).
 - Nenhuma imagem ou som de terceiros.
 
 ## 📄 Licença
