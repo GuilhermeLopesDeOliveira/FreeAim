@@ -24,6 +24,7 @@
 <!-- ===== LOGIN ===== -->
 <div id="auth-screen" class="auth">
   <div class="auth-card">
+    <button class="btn ghost small btn-lang auth-lang" data-notr type="button" aria-label="Switch language">EN</button>
     <h1 class="logo">FREE<span>AIM</span></h1>
     <p class="sub">Treine sua mira no navegador</p>
     <div class="tabs">
@@ -40,6 +41,7 @@
       <p id="auth-msg" class="msg"></p>
       <button id="auth-submit" class="btn primary" type="submit">Entrar</button>
     </form>
+    <button id="btn-guest" class="btn ghost guest" type="button">Jogar como convidado (sem senha)</button>
     <p class="note">Tudo fica salvo só neste navegador.</p>
   </div>
 </div>
@@ -63,6 +65,7 @@
         <div class="xpbar"><i id="top-xp-fill"></i></div>
       </div>
       <button id="btn-profile-chip" class="chip" type="button"><span id="top-icon"></span><span id="top-name"></span></button>
+      <button class="btn ghost small btn-lang" data-notr type="button" aria-label="Switch language">EN</button>
       <button id="btn-logout" class="btn ghost small" type="button">Sair</button>
     </div>
   </header>
@@ -78,26 +81,31 @@
             <div id="mode-list" class="mode-list"></div>
           </div>
           <div class="panel side">
-            <h3>Duração</h3>
-            <div id="dur-list" class="chips"></div>
-            <h3 class="mt">Top 3 <span id="mini-rank-label" class="muted"></span></h3>
+            <h3>Ranking competitivo <span id="mini-rank-label" class="muted"></span></h3>
             <ol id="mini-rank" class="mini-rank"></ol>
           </div>
         </div>
 
+        <div id="arena-stage" class="stage">
+          <!-- barra de informações FORA da arena: nenhum alvo nasce embaixo dela -->
+          <div id="hud" class="hud">
+            <div class="hud-pills">
+              <div id="hud-time-pill" class="pill"><span class="lbl">Tempo</span><span id="hud-time" class="orb">0.0</span></div>
+              <div class="pill"><span class="lbl">Pontos</span><span id="hud-score" class="baloo-points">0</span></div>
+              <div class="pill"><span class="lbl">Combo</span><span id="hud-combo" class="orb">x0</span></div>
+              <div class="pill miss"><span class="lbl">Erros</span><span id="hud-miss" class="orb">0</span></div>
+              <div class="pill"><span class="lbl">Moedas</span><span id="hud-coins" class="baloo-coins">0</span></div>
+              <div id="hud-lives-pill" class="pill hidden"><span class="lbl">Vidas</span><span id="hud-lives" class="orb lives"></span></div>
+              <div id="hud-btn-pill" class="pill hold hidden"><span class="lbl">Segure</span><span id="hud-btn" class="orb">Botão esquerdo</span></div>
+              <div class="hud-keys"><span><kbd>R</kbd> reinicia o jogo</span><span><kbd>T</kbd> abre o Setup</span></div>
+            </div>
+            <div id="countdown" class="countdown hidden">
+              <span id="cd-label" class="cd-label">O jogo começa em</span>
+              <span id="cd-num" class="cd-num"></span>
+            </div>
+          </div>
         <div id="arena-wrap" class="arena-wrap" data-bg="grid">
           <canvas id="game-canvas"></canvas>
-          <div id="hud" class="hud">
-            <div class="pill"><span class="lbl">Tempo</span><span id="hud-time" class="orb">0.0</span></div>
-            <div class="pill"><span class="lbl">Pontos</span><span id="hud-score" class="baloo-points">0</span></div>
-            <div class="pill"><span class="lbl">Combo</span><span id="hud-combo" class="orb">x0</span></div>
-            <div class="pill"><span class="lbl">Moedas</span><span id="hud-coins" class="baloo-coins">0</span></div>
-            <div id="hud-lives-pill" class="pill hidden"><span class="lbl">Vidas</span><span id="hud-lives" class="orb lives"></span></div>
-          </div>
-          <div id="countdown" class="countdown hidden">
-            <span id="cd-label" class="cd-label">O jogo começa em</span>
-            <span id="cd-num" class="cd-num"></span>
-          </div>
           <div id="arena-overlay" class="arena-overlay">
             <div id="result-panel" class="result hidden">
               <h2 id="res-title">Sessão concluída</h2>
@@ -112,10 +120,15 @@
               <div id="res-badges" class="badges"></div>
             </div>
             <p id="overlay-msg" class="overlay-msg"></p>
-            <button id="btn-start" class="btn primary big" type="button">Iniciar</button>
+            <div class="overlay-btns">
+              <button id="btn-start" class="btn primary big" type="button">Iniciar</button>
+              <button id="btn-config" class="btn big" type="button">⚙ Configurar</button>
+            </div>
             <button id="btn-close-focus" class="btn ghost small hidden" type="button">Voltar ao menu</button>
+            <p id="setup-sum" class="setup-sum"></p>
             <p id="overlay-hint" class="hint">Clique para começar. Esc cancela a sessão.</p>
           </div>
+        </div>
         </div>
       </section>
 
@@ -130,7 +143,7 @@
         </div>
 
         <div class="panel">
-          <h3>Itens especiais</h3>
+          <h3>Itens especiais e passes</h3>
           <div id="special-items"></div>
         </div>
 
@@ -139,18 +152,18 @@
           <div class="box-row">
             <div class="box-info">
               <div class="box-cost"><span id="box-cost" class="baloo-coins big">750</span></div>
+              <div id="box-mult" class="seg hidden"><button class="chip-btn active" data-mult="1" type="button">1×</button><button class="chip-btn" data-mult="3" type="button">3×</button></div>
               <button id="btn-open-box" class="btn primary" type="button">Abrir caixa</button>
+              <button id="btn-fast" class="btn hidden" type="button">⚡ Giro rápido: ligado</button>
+              <button id="btn-auto" class="btn hidden" type="button">▶ Automático</button>
               <p class="muted small">Skin repetida devolve moedas por raridade.</p>
             </div>
             <div id="box-odds" class="odds"></div>
+            <div id="admin-box" class="admin-box hidden"><b>Admin · chance da caixa (teste)</b><div class="ab-chips"></div><span class="muted small">Força a raridade sorteada. Só a conta ADM01 vê isto.</span></div>
           </div>
+          <div id="roulette" class="roulette hidden"></div>
           <div id="box-result" class="box-result"></div>
           <details class="mt"><summary>Histórico de caixas</summary><ul id="box-history" class="plain-list"></ul></details>
-        </div>
-
-        <div class="panel">
-          <h3>Formatos de alvo <span class="muted small">500 moedas cada, em ordem</span></h3>
-          <div id="format-grid" class="grid-cards"></div>
         </div>
 
         <div class="panel">
@@ -194,7 +207,7 @@
         </div>
 
         <div class="panel">
-          <h3>Ranking local <span class="muted small">top 5 neste navegador</span></h3>
+          <h3>Leaderboard competitivo <span class="muted small">top 10 das contas deste navegador</span></h3>
           <div class="row">
             <select id="rk-mode"></select>
             <select id="rk-dur"></select>
@@ -303,12 +316,9 @@
       <section id="view-settings" class="view">
         <div class="settings-grid">
           <div class="panel">
-            <h3>Jogo</h3>
-            <label>Velocidade dos alvos <output id="set-speed-out"></output>
-              <input id="set-speed" type="range" min="1" max="10">
-            </label>
-            <div class="range-hint"><span>Lento</span><span>Rápido</span></div>
-            <p class="muted small">Vale para Alvos móveis e Tracking.</p>
+            <h3>Mouse</h3>
+            <label class="switch"><input id="set-left" type="checkbox"><span class="sw"></span> Modo canhoto</label>
+            <p class="muted small">Inverte os botões do mouse: o tiro (e o botão segurado no Tracking) passa a ser o botão direito.</p>
             <h4>Fundo da arena</h4>
             <div id="set-bg-tiles" class="bg-tiles"></div>
           </div>
@@ -325,7 +335,18 @@
           </div>
 
           <div class="panel">
+            <h3>Backup do progresso</h3>
+            <p class="muted small">O jogo é 100% local: tudo fica salvo só neste navegador. Exporte um arquivo para guardar seu progresso ou levar para outro computador.</p>
+            <div class="row-btns">
+              <button id="btn-export" class="btn small" type="button">Exportar progresso</button>
+              <button id="btn-import" class="btn small" type="button">Importar progresso</button>
+            </div>
+            <input id="file-import" type="file" accept=".json,application/json" hidden>
+          </div>
+
+          <div class="panel">
             <h3>Aparência</h3>
+            <label class="switch"><input id="set-tips" type="checkbox"><span class="sw"></span> Mostrar dicas</label>
             <h4>Tema do aplicativo</h4>
             <div id="set-theme-seg" class="seg"></div>
             <h4>Modo daltonismo</h4>
@@ -353,9 +374,19 @@
       <div id="tip-dots" class="tip-dots"></div>
     </div>
     <button id="tip-next" class="tip-nav" type="button" aria-label="Próxima dica">›</button>
+    <button id="tip-close" class="tip-close" type="button" aria-label="Ocultar dicas" title="Ocultar dicas">✕</button>
   </aside>
 </div>
 
+<!-- Poki: para publicar, adicione aqui a tag do PokiSDK (o jogo já chama gameplayStart/gameplayStop se ele existir) -->
+<!-- CONFIGURAR MODO -->
+<div id="cfg-modal" class="cfg-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cfg-title">
+  <div class="cfg-card">
+    <div id="mode-cfg" class="mode-cfg"></div>
+    <div class="cfg-foot"><button id="btn-cfg-close" class="btn primary" type="button">Pronto</button></div>
+  </div>
+</div>
+<script src="i18n.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
